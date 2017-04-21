@@ -19,13 +19,9 @@ sup_x_d <- 0:4
 
 
 
-
-
-
 bayesian_update <- function(obs_x,
                             sup_x){  
-  #   obs_x <- obs_x_b
-  #   sup_x <- sup_x_b
+ 
   bin_size <- max(sup_x)    
   joint <- array(dim=c(length(sup_x),length(sup_theta),length(obs_x)))
   likelihood <- array(dim=dim(joint))
@@ -33,7 +29,6 @@ bayesian_update <- function(obs_x,
   priors_theta[,1] <- prior_theta
   posteriors_theta <- array(dim=c(length(sup_theta),length(obs_x)))
   for(ii in 1:length(obs_x)){
-    # ii <- 1
     for(xx in 1:length(sup_x)){
       for(tt in 1:length(sup_theta)){
         likelihood[xx,tt,ii] <- dbinom(sup_x[xx],size=bin_size,prob=sup_theta[tt])
@@ -54,14 +49,18 @@ bayesian_update <- function(obs_x,
   
 }
 
-bu <- bayesian_update(obs_x_d,sup_x_d)
+
+bu <- bayesian_update(obs_x_b,sup_x_b)
+
 
 layout(1)
-plot(0,type='n',xlim=c(1,length(sup_theta)),ylim=c(0,1),axes=F)
+par(mar=rep(4,4))
+plot(0,type='n',xlim=c(1,length(sup_theta)),ylim=c(0,1),axes=F,
+     xlab='theta')
 axis(1,at=1:length(sup_theta),labels=sup_theta)
 axis(2)
 for(xx in 1:dim(bu$posteriors)[2]){
-  polygon(x=c(1,6,6,1),y=c(0,0,1,1),col='#ffffff35',border=F)
+  polygon(x=c(1,6,6,1),y=c(0,0,1,1),col='#ffffffee',border=F)
   lines(bu$posteriors[,xx],col='#0066ee',lwd=5)
 }
 lines(bu$priors[,1],lty='dashed',col='#ff5500',lwd=3)
