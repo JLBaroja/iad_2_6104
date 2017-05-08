@@ -1,8 +1,8 @@
 # Updating a joint prior over hypergeometric parameters
 # d: die {1,2,...,6} (not shown)
 # n = 16-d (arbitrary way to decide extraction size; influences num. of successes, too)
-# K ~ Binomial(theta = n/20, size = 8) 
-# X ~ Hypergeometric(total = 20, successes = K, extraction_size = n)
+# K|n ~ Binomial(theta = n/20, size = 8) 
+# X|n,K ~ Hypergeometric(total = 20, successes = K, extraction_size = n)
 
 # We observed some X and inferred both n and K:
 
@@ -69,6 +69,8 @@ bayesian_updater <- function(observed_X,prior_nK){
   posteriors_nK <- vector('list',length(observed_X))
   mar_pos_n <- vector('list',length(observed_X))
   mar_pos_K <- vector('list',length(observed_X))
+  mar_prior_n <- vector('list',length(observed_X))
+  mar_prior_K <- vector('list',length(observed_X))
   priors_nK <- vector('list',length(observed_X))
   
   for(ii in 1:length(observed_X)){
@@ -87,17 +89,21 @@ bayesian_updater <- function(observed_X,prior_nK){
     mar_pos_n[[ii]] <- apply(posterior_nK,MARGIN=1,FUN=sum)
     mar_pos_K[[ii]] <- apply(posterior_nK,MARGIN=2,FUN=sum)
     priors_nK[[ii]] <- joint_nK
+    mar_prior_n[[ii]] <- apply(priors_nK[[ii]],MARGIN=1,FUN=sum)
+    mar_prior_K[[ii]] <- apply(priors_nK[[ii]],MARGIN=2,FUN=sum)
   }
   
   return(list(post_nK=posteriors_nK,
               mar_pos_n=mar_pos_n,
               mar_pos_K=mar_pos_K,
+              mar_prior_n=mar_prior_n,
+              mar_prior_K=mar_prior_K,
               prior_nK=priors_nK))
 }
 
 
 
-# Prior_nK_a (this closely resembles problem definition)
+# Prior_nK_a (this one closely resembles original problem definition: n and K are not independent)
 pr_n <- rep(1/6,6)
 prior_nK_a <- array(dim=c(length(sup_n),
                           length(sup_K)))
@@ -110,7 +116,7 @@ for(nn in 1:length(sup_n)){
 }
 
 
-# Prior_nK_b (this changes the assumption of dependence between n and K)
+# Prior_nK_b (this one drops the assumption of dependence between n and K)
 load('just_another_joint.Rdata')
 prior_nK_b <- another_joint_n_K
 
@@ -156,34 +162,35 @@ for(i in 1:(length(inference_a$post_nK)+1)){
   }
 }
 
+
 # Plot marginal posteriors
 layout(matrix(1:2,ncol=2))
-
-plot(0,type='n',
+par(mar=c(5,4,4,4))
+plot(0,type='n',axes=F,
      xlim=c(min(sup_n),max(sup_n)),ylim=c(0,.3),
      ylab='Posterior Density',xlab='sup_n')
 for(i in 1:length(inference_a$post_nK)){
-  polygon(x=rep(c(min(sup_n),max(sup_n)),each=2),
+  polygon(x=rep(c(min(sup_n)-1,max(sup_n)+1),each=2),
           y=c(0,.3,.3,0),col='#ffffff66',border=F)
-  lines(sup_n,inference_a$mar_pos_n[[i]],col=color_a,lwd=5)
-  lines(sup_n,inference_b$mar_pos_n[[i]],col=color_b,lwd=5)
+  lines(sup_n,inference_a$mar_pos_n[[i]],col=color_a,lwd=6)
+  lines(sup_n,inference_b$mar_pos_n[[i]],col=color_b,lwd=6)
 }
+lines(sup_n,inference_a$mar_prior_n[[1]],col=color_a,lwd=3,lty='dashed')
+lines(sup_n,inference_b$mar_prior_n[[1]],col=color_b,lwd=1.5,lty='dashed')
+axis(1)
+axis(2)
 
-plot(0,type='n',
+plot(0,type='n',axes=F,
      xlim=c(min(sup_K),max(sup_K)),ylim=c(0,.6),
      ylab='Posterior Density',xlab='sup_K')
 for(i in 1:length(inference_a$post_nK)){
-  polygon(x=rep(c(min(sup_K),max(sup_K)),each=2),
+  polygon(x=rep(c(min(sup_K)-1,max(sup_K)+1),each=2),
           y=c(0,.6,.6,0),col='#ffffff66',border=F)
-  lines(sup_K,inference_a$mar_pos_K[[i]],col=color_a,lwd=5)
-  lines(sup_K,inference_b$mar_pos_K[[i]],col=color_b,lwd=5)
+  lines(sup_K,inference_a$mar_pos_K[[i]],col=color_a,lwd=6)
+  lines(sup_K,inference_b$mar_pos_K[[i]],col=color_b,lwd=6)
 }
-
-
-
-
-
-
-
-
+lines(sup_K,inference_a$mar_prior_K[[1]],col=color_a,lwd=3,lty='dashed')
+lines(sup_K,inference_b$mar_prior_K[[1]],col=color_b,lwd=1.5,lty='dashed')
+axis(1)
+axis(2)
 
