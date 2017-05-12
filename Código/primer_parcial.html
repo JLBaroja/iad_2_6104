@@ -123,11 +123,70 @@ $(document).ready(function () {
 </div>
 
 
+<div id="solucion" class="section level3">
+<h3>Solución</h3>
 <p>Cierta fiesta de fin de semestre reúne a 57 personas, de las cuales 31 saben bailar. Durante las primeras horas la celebración transcurre sin contratiempos, pero eventualmente los vecinos se quejan del albroto y obligan al anfitrión a controlar el ambiente. Con tal de no detener la fiesta por completo, éste elige 20 personas al azar para permanecer en la casa y corre al resto.</p>
 <p>Entrada la noche, con los vecinos finalmente tranquilos pero con los 20 invitados restantes alarmantemente sobrios (incluso después de dar cuenta de toda la cerveza en la casa), el anfitrión decide compartir lo que le queda de una botellita de mezcal ultra-súper para enfrentar la madrugada. Como no es una botella nueva el mezcal no alcanza para todos: sólo salen 8 caballitos, cada uno con poder fumigador capaz de noquear al bailarín más resistente, que entrega a los primeros 8 invitados que se le cruzan en el camino.</p>
 <p>Imagina que llegas a la fiesta con ganas de bailar, justo después de que el mezcal se reparte, y que empiezas a buscar bailarines. Asumiendo que nadie que haya tomado mezcal puede bailar (al margen de si sabe o no sabe), y que cualquier persona que sepa bailará contigo:</p>
 <ol style="list-style-type: decimal">
-<li><p>Especifica la distribución conjunta entre las variables <code>f</code>, <code>s</code> y <code>b</code>, que representan: <code>f: número de bailarines que quedaron después de correr a los 37 desafortunados</code> <code>s: número de bailarines que no probaron el mezcal (i.e., que todavía pueden bailar)</code> <code>b: número de bailarines que puedes encontrar al preguntar a 18 personas (con remplazo)</code></p></li>
+<li>Especifica la distribución conjunta entre las variables <code>f</code>, <code>s</code> y <code>b</code>, que representan: <code>f: número de bailarines que quedaron después de correr a los 37 desafortunados</code> <code>s: número de bailarines que no probaron el mezcal (i.e., que todavía pueden bailar)</code> <code>b: número de bailarines que puedes encontrar al preguntar a 18 personas (con remplazo)</code></li>
+</ol>
+<p><em>Empezamos especificando los posibles valores que cada variable aleatoria <strong>podría</strong> tomar, de acuerdo con la definición del problema:</em></p>
+<pre class="r"><code>rm(list=ls())
+
+# Posibles números de bailarines que sobreviven a la primera extracción:
+sup_f &lt;- 0:20 
+
+# Elegir a 8 bailarines para darles mezcal equivale a elegir a
+# 12 bailarines para no darles mezcal:
+sup_s &lt;- 0:12
+
+# Al muestrear 18 bailarines (con reemplazo) es posible encontrar 
+# desde 0 (suerte muy mala) hasta 18 (suerte muy buena) bailarines:
+sup_b &lt;- 0:18
+
+# El el mismo proceso de muestreo anterior, es posible encontrar al
+# primer bailarín en el primer ensayo, o en el segundo, o en el
+# tercero, o en cualquier ensayo hasta infinito (i.e., nunca
+# encontrarse con alguno de los bailarines en la fiesta):
+sup_t &lt;- 0:15</code></pre>
+<p><em>Podemos especificar la distribución marginal sobre <code>f</code> porque esta es la variable sobre la que tenemos más información (todos los parámetros son conocidos, asumiendo que se trata de un proceso hipergeométrico):</em></p>
+<pre class="r"><code>p_f &lt;- dhyper(sup_f,
+              m=31,
+              n=57-31,
+              k=20)</code></pre>
+<p><em>La cantidad de bailarines que se salvan del mezcal depende de cuántos bailarines se salvaron de la primera eliminación, número que es incierto (o variable, o desconocido). Aparte, también depende del número de caballitos (para cuántos bailarines <strong>no</strong> alcanzan). La “influencia” condicional de <code>f</code> sobre <code>s</code>, y la distribución prior sobre <code>f</code>, permiten calcular la distribución conjunta entre ambas variables:</em></p>
+<p><span class="math display">\[P(f,s)=P(s|f)P(f)\]</span></p>
+<p><em>De manera similar, la cantidad de bailarines que pueden aparecer en 18 extracciones con remplazo depende (directamente) de cuántos bailarines se salvaron del mezcal, y de cuántos bailarines se quedaron en la fiesta (indirectamente). La distribución conjunta sobre las tres variables puede calcularse empleando nuevamente la <strong>regla de la cadena</strong>:</em></p>
+<p><span class="math display">\[
+\begin{aligned}
+P(f,s,b)&amp;=P(b|f,s)P(f,s)\\
+          &amp;=P(b|f,s)P(s|f)P(f)
+          \end{aligned}
+          \]</span></p>
+<p><em>(En cada iteración sobre las posiciones del soporte de <code>s</code>, el código siguiente calcula la distribución conjunta sobre todos los valores del soporte de <code>b</code>.)</em></p>
+<pre class="r"><code>p_fs &lt;- array(dim=c(length(sup_f),length(sup_s)))
+p_fsb &lt;- array(dim=c(length(sup_f),length(sup_s),length(sup_b)))
+
+for(ff in 1:length(sup_f)){
+  for(ss in 1:length(sup_s)){
+    p_fs[ff,ss] &lt;- p_f[ff]*dhyper(sup_s[ss],
+                                  m=sup_f[ff],
+                                  n=20-sup_f[ff],
+                                  k=12)
+    for(bb in 1:length(sup_b)){
+      p_fsb[ff,ss,bb] &lt;- p_fs[ff,ss]*dbinom(sup_b[bb],
+                                            prob=sup_s[ss]/12,
+                                            size=18)
+    }
+  }
+}</code></pre>
+<!-- p_fst <- array(dim=c(length(sup_f),length(sup_s),length(sup_t))) -->
+<pre><code>&lt;!-- for(tt in 1:length(sup_t)){ --&gt;
+&lt;!--   p_fst[ff,ss,tt] &lt;- p_fs[ff,ss]*dgeom(sup_t[tt], --&gt;
+&lt;!--                                        prob=sup_s[ss]/12) --&gt;
+&lt;!-- } --&gt;</code></pre>
+<ol start="2" style="list-style-type: decimal">
 <li><p>¿Cuántas combinaciones diferentes incluye dicha distribución (contando combinaciones posibles e imposibles)?</p></li>
 <li><p>Especifica las distribuciones marginales sobre cada variable y descríbelas. ¿Cuántas personas crees que bailarán contigo?</p></li>
 <li><p>Imagina que encuentras <code>b=14</code> bailarines entre los 18 invitados a los que preguntas. ¿Cuántos bailarines crees que sobrevivieron la primera eliminación y cuántos crees que se salvaron del mezcal? Especifica la distribución conjunta posterior sobre dichas variables (<code>f</code> y <code>s</code>) y las marginales posteriores sobre cada una; compara cada distribución posterior contra la distribución prior correspondiente y presenta tus conclusiones.</p></li>
@@ -137,6 +196,7 @@ $(document).ready(function () {
 <li>Repite los ejercicios anteriores sustituyendo a la variable <code>b</code> por la variable <code>t</code>: <code>t: número de personas que no bailarán contigo antes de encontrar a la primera que sí lo haga (con remplazo)</code></li>
 </ol>
 <p>En este último ejercicio la distribución conjunta objetivo es <code>P(f,s,t)</code> y <strong>no</strong> incluye a la variable <code>b</code>. ¿Cuántas combinaciones posibles existen entre dichas variables? Después de modelar la incertidumbre inicial, asume que encuentras al primer bailarín después de preguntarle a <code>t=7</code> personas. Actualiza tus creencias sobre las variables <code>f</code> y <code>s</code> y presenta tus conclusiones: ¿la observación <code>t=7</code> sugiere lo mismo que la observación <code>b=14</code>?</p>
+</div>
 
 
 

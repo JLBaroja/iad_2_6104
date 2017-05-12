@@ -1,0 +1,108 @@
+---
+title: "Examen Parcial"
+author: "Investigación y Análisis de Datos II"
+date: "Mayo 8, 2017"
+output: html_document
+---
+
+### Solución
+
+Cierta fiesta de fin de semestre reúne a 57 personas, de las cuales 31 saben bailar. Durante las primeras horas la celebración transcurre sin contratiempos, pero eventualmente los vecinos se quejan del albroto y obligan al anfitrión a controlar el ambiente. Con tal de no detener la fiesta por completo, éste elige 20 personas al azar para permanecer en la casa y corre al resto.
+
+Entrada la noche, con los vecinos finalmente tranquilos pero con los 20 invitados restantes alarmantemente sobrios (incluso después de dar cuenta de toda la cerveza en la casa), el anfitrión decide compartir lo que le queda de una botellita de mezcal ultra-súper para enfrentar la madrugada. Como no es una botella nueva el mezcal no alcanza para todos: sólo salen 8 caballitos, cada uno con poder fumigador capaz de noquear al bailarín más resistente, que entrega a los primeros 8 invitados que se le cruzan en el camino.
+
+Imagina que llegas a la fiesta con ganas de bailar, justo después de que el mezcal se reparte, y que empiezas a buscar bailarines. Asumiendo que nadie que haya tomado mezcal puede bailar (al margen de si sabe o no sabe), y que cualquier persona que sepa bailará contigo: 
+
+1. Especifica la distribución conjunta entre las variables `f`, `s` y `b`, que representan:
+`f: número de bailarines que quedaron después de correr a los 37 desafortunados` 
+`s: número de bailarines que no probaron el mezcal (i.e., que todavía pueden bailar)`
+`b: número de bailarines que puedes encontrar al preguntar a 18 personas (con remplazo)`
+
+*Empezamos especificando los posibles valores que cada variable aleatoria **podría** tomar, de acuerdo con la definición del problema:*
+```{r}
+rm(list=ls())
+
+# Posibles números de bailarines que sobreviven a la primera extracción:
+sup_f <- 0:20 
+
+# Elegir a 8 bailarines para darles mezcal equivale a elegir a
+# 12 bailarines para no darles mezcal:
+sup_s <- 0:12
+
+# Al muestrear 18 bailarines (con reemplazo) es posible encontrar 
+# desde 0 (suerte muy mala) hasta 18 (suerte muy buena) bailarines:
+sup_b <- 0:18
+
+# El el mismo proceso de muestreo anterior, es posible encontrar al
+# primer bailarín en el primer ensayo, o en el segundo, o en el
+# tercero, o en cualquier ensayo hasta infinito (i.e., nunca
+# encontrarse con alguno de los bailarines en la fiesta):
+sup_t <- 0:15
+```
+
+*Podemos especificar la distribución marginal sobre `f` porque esta es la variable sobre la que tenemos más información (todos los parámetros son conocidos, asumiendo que se trata de un proceso hipergeométrico):*
+```{r}
+p_f <- dhyper(sup_f,
+              m=31,
+              n=57-31,
+              k=20)
+```
+
+*La cantidad de bailarines que se salvan del mezcal depende de cuántos bailarines se salvaron de la primera eliminación, número que es incierto (o variable, o desconocido). Aparte, también depende del número de caballitos (para cuántos bailarines **no** alcanzan). La "influencia" condicional de `f` sobre `s`, y la distribución prior sobre `f`, permiten calcular la distribución conjunta entre ambas variables:*
+
+$$P(f,s)=P(s|f)P(f)$$
+
+*De manera similar, la cantidad de bailarines que pueden aparecer en 18 extracciones con remplazo depende (directamente) de cuántos bailarines se salvaron del mezcal, y de cuántos bailarines se quedaron en la fiesta (indirectamente). La distribución conjunta sobre las tres variables puede calcularse empleando nuevamente la **regla de la cadena**:*
+
+$$
+\begin{aligned}
+P(f,s,b)&=P(b|f,s)P(f,s)\\
+          &=P(b|f,s)P(s|f)P(f)
+          \end{aligned}
+          $$
+
+*(En cada iteración sobre las posiciones del soporte de `s`, el código siguiente calcula la distribución conjunta sobre todos los valores del soporte de `b`.)*
+
+```{r,warning=F}
+p_fs <- array(dim=c(length(sup_f),length(sup_s)))
+p_fsb <- array(dim=c(length(sup_f),length(sup_s),length(sup_b)))
+
+for(ff in 1:length(sup_f)){
+  for(ss in 1:length(sup_s)){
+    p_fs[ff,ss] <- p_f[ff]*dhyper(sup_s[ss],
+                                  m=sup_f[ff],
+                                  n=20-sup_f[ff],
+                                  k=12)
+    for(bb in 1:length(sup_b)){
+      p_fsb[ff,ss,bb] <- p_fs[ff,ss]*dbinom(sup_b[bb],
+                                            prob=sup_s[ss]/12,
+                                            size=18)
+    }
+  }
+}
+
+```
+<!-- p_fst <- array(dim=c(length(sup_f),length(sup_s),length(sup_t))) -->
+    <!-- for(tt in 1:length(sup_t)){ -->
+    <!--   p_fst[ff,ss,tt] <- p_fs[ff,ss]*dgeom(sup_t[tt], -->
+    <!--                                        prob=sup_s[ss]/12) -->
+    <!-- } -->
+
+2. ¿Cuántas combinaciones diferentes incluye dicha distribución (contando combinaciones posibles e imposibles)?
+
+3. Especifica las distribuciones marginales sobre cada variable y descríbelas. ¿Cuántas personas crees que bailarán contigo?
+
+4. Imagina que encuentras `b=14` bailarines entre los 18 invitados a los que preguntas. ¿Cuántos bailarines crees que sobrevivieron la primera eliminación y cuántos crees que se salvaron del mezcal? Especifica la distribución conjunta posterior sobre dichas variables (`f` y `s`) y las marginales posteriores sobre cada una; compara cada distribución posterior contra la distribución prior correspondiente y presenta tus conclusiones.
+
+Bonus Track:
+
+5. Repite los ejercicios anteriores sustituyendo a la variable `b` por la variable `t`:
+`t: número de personas que no bailarán contigo antes de encontrar a la primera que sí lo haga (con remplazo)`
+
+En este último ejercicio la distribución conjunta objetivo es `P(f,s,t)` y **no** incluye a la variable `b`. ¿Cuántas combinaciones posibles existen entre dichas variables? Después de modelar la incertidumbre inicial, asume que encuentras al primer bailarín después de preguntarle a `t=7` personas. Actualiza tus creencias sobre las variables `f` y `s` y presenta tus conclusiones: ¿la observación `t=7` sugiere lo mismo que la observación `b=14`? 
+
+
+
+
+
+

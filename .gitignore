@@ -4,5 +4,5 @@
 # no .Rhistorys please!
 *.Rhistory
 
-*primer_parcial.R
-*primer_parcial.Rmd
+#*primer_parcial.R
+#*primer_parcial.Rmd
