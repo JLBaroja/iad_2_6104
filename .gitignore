@@ -5,4 +5,10 @@
 *.Rhistory
 
 #*primer_parcial.R
-#*primer_parcial.Rmd
+
+*Jan2015_BernoulliDistributionsPt1.R
+*Jan2015_BernoulliDistributionsPt2.R
+*Jan2015_InferenceBinomialModels.R
+*Jan2015_InferenceBernoulliModels.R
+*Jan2015_InferenceNormalModels.R
+*Jan2015_SimpleLinearRegression.R
